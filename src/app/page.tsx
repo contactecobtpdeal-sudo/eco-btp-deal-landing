@@ -150,35 +150,27 @@ function Hero() {
             </div>
           </div>
 
-          {/* Visual Element */}
-          <div className="relative hidden lg:block">
-            <div className="relative w-full aspect-square max-w-lg mx-auto">
-              {/* Main Circle */}
-              <div className="absolute inset-0 bg-gradient-to-br from-eco-green-500 to-eco-green-600 rounded-full opacity-10" />
+          {/* Logo Officiel */}
+          <div className="relative hidden lg:flex items-center justify-center">
+            <div className="relative">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-btp-orange-400 to-eco-green-400 rounded-3xl blur-2xl opacity-30 scale-110" />
 
-              {/* Inner Card */}
-              <div className="absolute inset-8 bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center justify-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-btp-orange-500 to-eco-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-anthracite-900 mb-2">Éco-responsable</h3>
-                <p className="text-anthracite-600 text-center text-sm">
-                  Des solutions durables pour un avenir meilleur
-                </p>
+              {/* Logo Container */}
+              <div className="relative bg-white rounded-3xl shadow-2xl p-4 transform hover:scale-105 transition-transform duration-300">
+                <img
+                  src="/logo-eco-btp-deal.jpg"
+                  alt="Logo Eco-BTP Deal - Plateforme BTP écologique"
+                  className="w-80 h-80 object-contain rounded-2xl"
+                />
+              </div>
 
-                {/* Floating Elements */}
-                <div className="absolute -top-4 -right-4 w-16 h-16 bg-btp-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-eco-green-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
+              {/* Floating badges */}
+              <div className="absolute -top-4 -right-4 bg-eco-green-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-semibold">
+                100% Éco
+              </div>
+              <div className="absolute -bottom-4 -left-4 bg-btp-orange-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-semibold">
+                BTP Pro
               </div>
             </div>
           </div>
