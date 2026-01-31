@@ -1,0 +1,8 @@
+{
+  "name": "Eco-BTP Deal Marketplace",
+  "description": "Une marketplace inversée pour le réemploi des matériaux de chantier, connectant professionnels du BTP et particuliers éco-responsables.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}

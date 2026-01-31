@@ -1,15 +1,13 @@
-import type { Config } from 'tailwindcss'
-
-const config: Config = {
+/** @type {import('tailwindcss').Config} */
+export default {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./index.html",
+    "./*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Couleurs éco BTP deal
         'eco-green': {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -34,22 +32,8 @@ const config: Config = {
           800: '#9a3412',
           900: '#7c2d12',
         },
-        'anthracite': {
-          50: '#f6f6f6',
-          100: '#e7e7e7',
-          200: '#d1d1d1',
-          300: '#b0b0b0',
-          400: '#888888',
-          500: '#6d6d6d',
-          600: '#5d5d5d',
-          700: '#4f4f4f',
-          800: '#3d3d3d',
-          900: '#2d2d2d',
-          950: '#1a1a1a',
-        },
       },
     },
   },
   plugins: [],
 }
-export default config
