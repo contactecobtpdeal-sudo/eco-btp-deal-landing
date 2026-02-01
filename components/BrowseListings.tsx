@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Search, Info, ShieldAlert, CreditCard, CheckCircle, QrCode, MapPin, Clock, ShieldCheck, ChevronRight, X, MessageSquare, Leaf, Weight, TrendingDown, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Info, ShieldAlert, CreditCard, CheckCircle, QrCode, MapPin, Clock, ShieldCheck, ChevronRight, X, MessageSquare, Leaf, Weight, TrendingDown, Zap, Loader2, Navigation } from 'lucide-react';
 import { Material, Category, User, UserRole, ListingStatus } from '../types';
 import CarbonImpactWidget from './CarbonImpactWidget';
 import RouteOptimizer from './RouteOptimizer';
@@ -12,14 +12,98 @@ interface BrowseListingsProps {
   onOpenChat: () => void;
 }
 
+interface UserLocation {
+  lat: number;
+  lng: number;
+  city?: string;
+}
+
+// Fonction Haversine pour calculer la distance entre 2 points GPS
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Rayon de la Terre en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Formater la distance pour l'affichage
+const formatDistance = (distanceKm: number): string => {
+  if (distanceKm < 1) {
+    return `${Math.round(distanceKm * 1000)} m`;
+  }
+  return `${distanceKm.toFixed(1)} km`;
+};
+
 const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onReserve, onOpenChat }) => {
   const [filter, setFilter] = useState<Category | 'Tous'>('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [reservationStep, setReservationStep] = useState<number | null>(null);
   const [isWaiverAccepted, setIsWaiverAccepted] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
-  const filtered = materials.filter(m => {
+  // Obtenir la position de l'utilisateur au chargement
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          // Reverse geocoding pour obtenir le nom de la ville
+          try {
+            const response = await fetch(
+              `https://api-adresse.data.gouv.fr/reverse/?lon=${longitude}&lat=${latitude}`
+            );
+            const data = await response.json();
+            const city = data.features?.[0]?.properties?.city || 'Votre position';
+
+            setUserLocation({ lat: latitude, lng: longitude, city });
+          } catch {
+            setUserLocation({ lat: latitude, lng: longitude });
+          }
+          setIsLoadingLocation(false);
+        },
+        (error) => {
+          console.error('Erreur de géolocalisation:', error);
+          setLocationError('Activez la localisation pour voir les distances');
+          setIsLoadingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    } else {
+      setLocationError('Géolocalisation non supportée');
+      setIsLoadingLocation(false);
+    }
+  }, []);
+
+  // Calculer la distance pour chaque matériau
+  const getDistanceLabel = (material: Material): string => {
+    if (!userLocation) return '📍 --';
+    const distance = calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      material.location.lat,
+      material.location.lng
+    );
+    return `📍 ${formatDistance(distance)}`;
+  };
+
+  // Trier les matériaux par distance
+  const sortedMaterials = [...materials].sort((a, b) => {
+    if (!userLocation) return 0;
+    const distA = calculateDistance(userLocation.lat, userLocation.lng, a.location.lat, a.location.lng);
+    const distB = calculateDistance(userLocation.lat, userLocation.lng, b.location.lat, b.location.lng);
+    return distA - distB;
+  });
+
+  const filtered = sortedMaterials.filter(m => {
     const matchCat = filter === 'Tous' || m.category === filter;
     const matchSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
@@ -57,10 +141,35 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onRese
         </div>
       </div>
 
+      {/* INDICATEUR DE LOCALISATION UTILISATEUR */}
+      <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold ${
+        userLocation ? 'bg-green-50 text-green-700 border border-green-200' :
+        locationError ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+        'bg-slate-50 text-slate-500 border border-slate-200'
+      }`}>
+        {isLoadingLocation ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            <span>Localisation en cours...</span>
+          </>
+        ) : userLocation ? (
+          <>
+            <Navigation size={16} className="text-green-600" />
+            <span>Vous êtes à <strong>{userLocation.city || 'Position GPS'}</strong></span>
+            <span className="text-xs text-green-500 ml-auto">Distances réelles</span>
+          </>
+        ) : (
+          <>
+            <MapPin size={16} />
+            <span>{locationError}</span>
+          </>
+        )}
+      </div>
+
       <div className="relative group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-500" size={20} />
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="Rechercher des matériaux..."
           className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all font-bold"
           value={searchQuery}
@@ -140,7 +249,13 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onRese
                     <CheckCircle size={14} fill="currentColor" className="text-white" />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 w-fit px-2 py-0.5 rounded-md"><MapPin size={12} className="text-orange-500" />{material.location.distanceLabel}</div>
+                <div className="flex items-center gap-1 text-xs font-bold text-slate-500 bg-slate-100 w-fit px-2 py-0.5 rounded-md">
+                  <MapPin size={12} className="text-orange-500" />
+                  {userLocation ? getDistanceLabel(material) : material.location.distanceLabel}
+                  {material.location.city && (
+                    <span className="text-slate-400 ml-1">• {material.location.city}</span>
+                  )}
+                </div>
                 <p className="text-slate-500 text-sm line-clamp-2">{material.description}</p>
                 <button disabled={material.status !== ListingStatus.AVAILABLE} onClick={() => handleOpenReservation(material)} className={`w-full py-3 rounded-xl font-bold transition-all ${material.status === ListingStatus.AVAILABLE ? 'bg-orange-500 text-white shadow-lg shadow-orange-100 hover:bg-orange-600 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
                   {material.status === ListingStatus.AVAILABLE ? 'Réserver le lot' : 'Déjà réservé'}
@@ -165,9 +280,12 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onRese
                   <h4 className="text-xl font-black uppercase tracking-tighter text-slate-900">Optimisation Logistique</h4>
                 </div>
                 
-                <RouteOptimizer 
-                  distance={selectedMaterial.location.distanceLabel.replace('📍 ', '')} 
-                  co2Savings="2.4" 
+                <RouteOptimizer
+                  distance={userLocation ? formatDistance(calculateDistance(
+                    userLocation.lat, userLocation.lng,
+                    selectedMaterial.location.lat, selectedMaterial.location.lng
+                  )) : selectedMaterial.location.distanceLabel.replace('📍 ', '')}
+                  co2Savings="2.4"
                   address={selectedMaterial.location.address}
                 />
 

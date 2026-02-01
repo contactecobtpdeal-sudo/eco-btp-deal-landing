@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Camera, Truck, Car, X, Loader2, CheckCircle2, Clock, Gift, Euro, ImagePlus, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Camera, Truck, Car, X, Loader2, CheckCircle2, Clock, Gift, Euro, ImagePlus, Plus, MapPin, Search } from 'lucide-react';
 import { Category, ListingStatus } from '../types';
 
 interface PostListingProps {
@@ -8,10 +8,22 @@ interface PostListingProps {
   onCancel: () => void;
 }
 
+interface GeocodedAddress {
+  label: string;
+  city: string;
+  postcode: string;
+  lat: number;
+  lng: number;
+}
+
 const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<GeocodedAddress[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<GeocodedAddress | null>(null);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     quantity: '',
@@ -22,6 +34,46 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
     isUrgent: false,
     logistics: 'voiture' as 'voiture' | 'camionnette' | 'camion',
   });
+
+  // Recherche d'adresse via l'API gouvernementale française
+  useEffect(() => {
+    const searchLocation = async () => {
+      if (locationQuery.length < 3) {
+        setLocationSuggestions([]);
+        return;
+      }
+
+      setIsSearchingLocation(true);
+      try {
+        const response = await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(locationQuery)}&limit=5`
+        );
+        const data = await response.json();
+
+        const suggestions: GeocodedAddress[] = data.features.map((feature: any) => ({
+          label: feature.properties.label,
+          city: feature.properties.city,
+          postcode: feature.properties.postcode,
+          lat: feature.geometry.coordinates[1],
+          lng: feature.geometry.coordinates[0],
+        }));
+
+        setLocationSuggestions(suggestions);
+      } catch (error) {
+        console.error('Erreur de géocodage:', error);
+      }
+      setIsSearchingLocation(false);
+    };
+
+    const debounceTimer = setTimeout(searchLocation, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [locationQuery]);
+
+  const handleSelectLocation = (location: GeocodedAddress) => {
+    setSelectedLocation(location);
+    setLocationQuery(location.label);
+    setLocationSuggestions([]);
+  };
 
   const addPhoto = () => {
     const mockImages = [
@@ -43,6 +95,11 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
       return;
     }
 
+    if (!selectedLocation) {
+      alert("Veuillez sélectionner une localisation pour votre lot.");
+      return;
+    }
+
     setIsPublishing(true);
     setTimeout(() => {
       setIsPublishing(false);
@@ -58,11 +115,13 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
           price: formData.priceType === 'don' ? 0 : parseFloat(formData.price || '0'),
           proId: "pro_1",
           proName: "BatiConstruct PME",
-          location: { 
-            lat: 48.8566, 
-            lng: 2.3522, 
-            address: "14 Rue du Chantier, Paris",
-            distanceLabel: "📍 0.5 km"
+          location: {
+            lat: selectedLocation.lat,
+            lng: selectedLocation.lng,
+            address: selectedLocation.label,
+            city: selectedLocation.city,
+            postcode: selectedLocation.postcode,
+            distanceLabel: "📍 Calcul en cours..."
           },
           availability: "Sur rendez-vous",
           pickupDeadline: formData.isUrgent ? "Avant Vendredi (Urgent)" : "Flexible",
@@ -125,13 +184,73 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantité / Volume</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Ex: 50 unités, 10 sacs..."
                 className="w-full text-lg font-bold p-4 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-orange-500 transition-all"
                 value={formData.quantity}
                 onChange={e => setFormData({...formData, quantity: e.target.value})}
               />
+            </div>
+
+            {/* CHAMP LOCALISATION */}
+            <div className="space-y-1.5 relative">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <MapPin size={12} className="text-orange-500" />
+                Ville ou Code Postal
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ex: 75001 ou Paris 15ème..."
+                  className={`w-full text-lg font-bold p-4 bg-slate-50 border-2 rounded-xl outline-none transition-all pr-12 ${
+                    selectedLocation ? 'border-green-500 bg-green-50' : 'border-slate-100 focus:border-orange-500'
+                  }`}
+                  value={locationQuery}
+                  onChange={e => {
+                    setLocationQuery(e.target.value);
+                    setSelectedLocation(null);
+                  }}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  {isSearchingLocation ? (
+                    <Loader2 size={20} className="text-slate-400 animate-spin" />
+                  ) : selectedLocation ? (
+                    <CheckCircle2 size={20} className="text-green-500" />
+                  ) : (
+                    <Search size={20} className="text-slate-400" />
+                  )}
+                </div>
+              </div>
+
+              {/* Suggestions d'adresses */}
+              {locationSuggestions.length > 0 && !selectedLocation && (
+                <div className="absolute z-50 w-full bg-white border-2 border-slate-200 rounded-xl shadow-xl mt-1 overflow-hidden">
+                  {locationSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSelectLocation(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors border-b border-slate-100 last:border-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MapPin size={16} className="text-orange-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-bold text-sm text-slate-900">{suggestion.city}</p>
+                          <p className="text-xs text-slate-500">{suggestion.label}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedLocation && (
+                <div className="flex items-center gap-2 mt-2 text-xs font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                  <CheckCircle2 size={14} />
+                  <span>Localisation confirmée : {selectedLocation.city} ({selectedLocation.postcode})</span>
+                </div>
+              )}
             </div>
           </div>
 

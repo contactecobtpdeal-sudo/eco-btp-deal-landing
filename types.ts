@@ -38,6 +38,8 @@ export interface Material {
     lng: number;
     address: string;
     distanceLabel: string;
+    city?: string;
+    postcode?: string;
   };
   availability: string;
   pickupDeadline: string;
