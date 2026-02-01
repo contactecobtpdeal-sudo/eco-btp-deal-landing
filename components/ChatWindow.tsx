@@ -72,15 +72,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ currentUser, onClose }) => {
 
   // Ouvrir l'itinéraire dans Google Maps (Android) ou Apple Maps (iOS)
   const openDirections = (lat: number, lng: number, address: string) => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const userAgent = navigator.userAgent || navigator.vendor;
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
     const encodedAddress = encodeURIComponent(address);
 
+    let url: string;
+
     if (isIOS) {
-      // iOS : schéma maps: pour Apple Maps avec guidage
-      window.location.href = `maps:?daddr=${lat},${lng}&dirflg=d`;
+      // iOS : lien Apple Maps avec destination et mode conduite
+      url = `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d&t=m`;
     } else {
-      // Android : schéma geo: universel pour Google Maps
-      window.location.href = `geo:0,0?q=${lat},${lng}(${encodedAddress})`;
+      // Android et autres : lien Google Maps avec navigation
+      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    }
+
+    // Ouvrir dans une nouvelle fenêtre/app
+    const newWindow = window.open(url, '_blank');
+
+    // Fallback si le popup est bloqué
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      window.location.href = url;
     }
   };
 
