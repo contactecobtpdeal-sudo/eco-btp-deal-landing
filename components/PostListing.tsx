@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Camera, Truck, Car, X, Loader2, CheckCircle2, Clock, Gift, Euro, ImagePlus, Plus, MapPin, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Truck, Car, X, Loader2, CheckCircle2, Clock, Gift, Euro, ImagePlus, Plus, MapPin, Search, Upload } from 'lucide-react';
 import { Category, ListingStatus } from '../types';
 
 interface PostListingProps {
@@ -23,6 +23,7 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
   const [locationSuggestions, setLocationSuggestions] = useState<GeocodedAddress[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<GeocodedAddress | null>(null);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -75,14 +76,32 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
     setLocationSuggestions([]);
   };
 
-  const addPhoto = () => {
-    const mockImages = [
-      'https://images.unsplash.com/photo-1541888946425-d81bb19480c5?q=80&w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1581094288338-2314dddb7bc3?q=80&w=800&auto=format&fit=crop'
-    ];
-    const nextPhoto = mockImages[formData.photos.length % mockImages.length];
-    setFormData({ ...formData, photos: [...formData.photos, nextPhoto] });
+  // Ouvrir le sélecteur de fichiers
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Gérer l'upload de photos depuis l'appareil
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target?.result as string;
+          setFormData(prev => ({
+            ...prev,
+            photos: [...prev.photos, base64]
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Reset input pour permettre de sélectionner le même fichier
+    e.target.value = '';
   };
 
   const removePhoto = (index: number) => {
@@ -145,29 +164,53 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
         <div className="max-w-md mx-auto space-y-8 pb-32">
           
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Galerie Photos</label>
-            
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              📸 Galerie Photos {formData.photos.length > 0 && `(${formData.photos.length})`}
+            </label>
+
+            {/* Input file caché */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
             <div className="grid grid-cols-3 gap-3">
               {formData.photos.map((photo, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border-2 border-slate-100 group">
-                  <img src={photo} className="w-full h-full object-cover" />
-                  <button 
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border-2 border-green-300 group bg-slate-100">
+                  <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
                     onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full shadow-lg"
                   >
-                    <X size={12} />
+                    <X size={14} />
                   </button>
+                  <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full">
+                    ✓ Photo {i + 1}
+                  </div>
                 </div>
               ))}
-              
-              <button 
-                onClick={addPhoto}
-                className="aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-orange-500 hover:text-orange-500 transition-all"
+
+              {/* Bouton ajouter photo */}
+              <button
+                onClick={openFilePicker}
+                className="aspect-square rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 flex flex-col items-center justify-center gap-2 text-orange-500 hover:border-orange-500 hover:bg-orange-100 transition-all active:scale-95"
               >
-                <Plus size={20} />
-                <span className="text-[8px] font-black uppercase">Ajouter</span>
+                <Camera size={28} />
+                <span className="text-[9px] font-black uppercase">
+                  {formData.photos.length === 0 ? 'Ajouter photo' : 'Ajouter +'}
+                </span>
               </button>
             </div>
+
+            {formData.photos.length === 0 && (
+              <p className="text-xs text-orange-600 font-medium bg-orange-50 p-3 rounded-lg border border-orange-200">
+                📷 Prenez au moins une photo de votre matériau pour publier
+              </p>
+            )}
           </div>
 
           <div className="space-y-5">
