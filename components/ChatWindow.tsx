@@ -63,11 +63,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ currentUser, onClose }) => {
   };
 
   const shareLocation = () => {
-    sendMessage(undefined, 'location', { 
-      address: "Chantier BatiConstruct - Zone Nord, Paris", 
-      lat: 48.8742, 
-      lng: 2.3592 
+    sendMessage(undefined, 'location', {
+      address: "Chantier BatiConstruct - Zone Nord, Paris",
+      lat: 48.8742,
+      lng: 2.3592
     });
+  };
+
+  // Ouvrir l'itinéraire dans Google Maps ou Apple Maps
+  const openDirections = (lat: number, lng: number, address: string) => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMac = /Macintosh/.test(navigator.userAgent);
+
+    // Encoder l'adresse pour l'URL
+    const encodedAddress = encodeURIComponent(address);
+
+    let url: string;
+
+    if (isIOS || isMac) {
+      // Apple Maps (fonctionne sur iOS et macOS)
+      url = `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    } else {
+      // Google Maps (Android et autres)
+      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodedAddress}`;
+    }
+
+    window.open(url, '_blank');
   };
 
   return (
@@ -125,8 +146,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ currentUser, onClose }) => {
                   <div className="p-4 text-sm font-bold leading-relaxed">{msg.text}</div>
                 ) : (
                   <div className="w-64 bg-white">
-                    <div className="h-32 bg-slate-200 relative group cursor-pointer" onClick={() => window.open(`https://maps.google.com/?q=${msg.locationData?.lat},${msg.locationData?.lng}`)}>
-                      <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover" />
+                    <div
+                      className="h-32 bg-gradient-to-br from-slate-100 to-slate-200 relative group cursor-pointer flex items-center justify-center"
+                      onClick={() => openDirections(msg.locationData?.lat, msg.locationData?.lng, msg.locationData?.address)}
+                    >
+                      {/* Fond stylisé de carte */}
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50"></div>
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center">
                         <MapPin size={24} className="text-orange-600 fill-white" strokeWidth={3} />
                       </div>
@@ -134,7 +159,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ currentUser, onClose }) => {
                     <div className="p-4">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Accès Chantier</p>
                       <p className="text-xs font-black text-slate-900 leading-tight">{msg.locationData?.address}</p>
-                      <button className="w-full mt-3 py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-lg shadow-slate-100 active:scale-95 transition-all">
+                      <button
+                        onClick={() => openDirections(msg.locationData?.lat, msg.locationData?.lng, msg.locationData?.address)}
+                        className="w-full mt-3 py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-lg shadow-slate-100 active:scale-95 transition-all hover:bg-orange-600"
+                      >
                         <ExternalLink size={12} /> Itinéraire
                       </button>
                     </div>
