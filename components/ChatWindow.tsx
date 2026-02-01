@@ -70,25 +70,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ currentUser, onClose }) => {
     });
   };
 
-  // Ouvrir l'itinéraire dans Google Maps ou Apple Maps
+  // Ouvrir l'itinéraire dans Google Maps (Android) ou Apple Maps (iOS)
   const openDirections = (lat: number, lng: number, address: string) => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isMac = /Macintosh/.test(navigator.userAgent);
-
-    // Encoder l'adresse pour l'URL
     const encodedAddress = encodeURIComponent(address);
 
-    let url: string;
-
-    if (isIOS || isMac) {
-      // Apple Maps (fonctionne sur iOS et macOS)
-      url = `https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    if (isIOS) {
+      // iOS : schéma maps: pour Apple Maps avec guidage
+      window.location.href = `maps:?daddr=${lat},${lng}&dirflg=d`;
     } else {
-      // Google Maps (Android et autres)
-      url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodedAddress}`;
+      // Android : schéma geo: universel pour Google Maps
+      window.location.href = `geo:0,0?q=${lat},${lng}(${encodedAddress})`;
     }
-
-    window.open(url, '_blank');
   };
 
   return (
