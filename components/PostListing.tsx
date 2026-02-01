@@ -193,65 +193,6 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
               />
             </div>
 
-            {/* CHAMP LOCALISATION */}
-            <div className="space-y-1.5 relative">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <MapPin size={12} className="text-orange-500" />
-                Ville ou Code Postal
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Ex: 75001 ou Paris 15ème..."
-                  className={`w-full text-lg font-bold p-4 bg-slate-50 border-2 rounded-xl outline-none transition-all pr-12 ${
-                    selectedLocation ? 'border-green-500 bg-green-50' : 'border-slate-100 focus:border-orange-500'
-                  }`}
-                  value={locationQuery}
-                  onChange={e => {
-                    setLocationQuery(e.target.value);
-                    setSelectedLocation(null);
-                  }}
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  {isSearchingLocation ? (
-                    <Loader2 size={20} className="text-slate-400 animate-spin" />
-                  ) : selectedLocation ? (
-                    <CheckCircle2 size={20} className="text-green-500" />
-                  ) : (
-                    <Search size={20} className="text-slate-400" />
-                  )}
-                </div>
-              </div>
-
-              {/* Suggestions d'adresses */}
-              {locationSuggestions.length > 0 && !selectedLocation && (
-                <div className="absolute z-50 w-full bg-white border-2 border-slate-200 rounded-xl shadow-xl mt-1 overflow-hidden">
-                  {locationSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleSelectLocation(suggestion)}
-                      className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors border-b border-slate-100 last:border-0"
-                    >
-                      <div className="flex items-start gap-3">
-                        <MapPin size={16} className="text-orange-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="font-bold text-sm text-slate-900">{suggestion.city}</p>
-                          <p className="text-xs text-slate-500">{suggestion.label}</p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {selectedLocation && (
-                <div className="flex items-center gap-2 mt-2 text-xs font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg">
-                  <CheckCircle2 size={14} />
-                  <span>Localisation confirmée : {selectedLocation.city} ({selectedLocation.postcode})</span>
-                </div>
-              )}
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -311,14 +252,78 @@ const PostListing: React.FC<PostListingProps> = ({ onPost, onCancel }) => {
         </div>
       </div>
 
-      <div className="p-6 bg-white border-t border-slate-100 sticky bottom-0 z-10">
-        <button 
-          disabled={isPublishing || !formData.title || formData.photos.length === 0}
+      <div className="p-6 bg-white border-t border-slate-100 sticky bottom-0 z-10 space-y-4">
+        {/* CHAMP LOCALISATION - Juste au-dessus du bouton */}
+        <div className="space-y-2 relative">
+          <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-2">
+            <MapPin size={14} />
+            📍 Ville ou Code Postal du chantier
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Tapez votre ville ou code postal..."
+              className={`w-full text-base font-bold p-4 border-2 rounded-xl outline-none transition-all pr-12 ${
+                selectedLocation
+                  ? 'border-green-500 bg-green-50 text-green-700'
+                  : 'border-orange-300 bg-orange-50 focus:border-orange-500'
+              }`}
+              value={locationQuery}
+              onChange={e => {
+                setLocationQuery(e.target.value);
+                setSelectedLocation(null);
+              }}
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              {isSearchingLocation ? (
+                <Loader2 size={20} className="text-orange-400 animate-spin" />
+              ) : selectedLocation ? (
+                <CheckCircle2 size={20} className="text-green-500" />
+              ) : (
+                <Search size={20} className="text-orange-400" />
+              )}
+            </div>
+          </div>
+
+          {/* Suggestions d'adresses */}
+          {locationSuggestions.length > 0 && !selectedLocation && (
+            <div className="absolute z-50 w-full bg-white border-2 border-orange-200 rounded-xl shadow-2xl mt-1 overflow-hidden bottom-full mb-2">
+              {locationSuggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleSelectLocation(suggestion)}
+                  className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors border-b border-slate-100 last:border-0"
+                >
+                  <div className="flex items-start gap-3">
+                    <MapPin size={16} className="text-orange-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-bold text-sm text-slate-900">{suggestion.city}</p>
+                      <p className="text-xs text-slate-500">{suggestion.label}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedLocation && (
+            <div className="flex items-center gap-2 text-xs font-bold text-green-600 bg-green-100 px-3 py-2 rounded-lg border border-green-200">
+              <CheckCircle2 size={14} />
+              <span>✓ {selectedLocation.city} ({selectedLocation.postcode})</span>
+            </div>
+          )}
+        </div>
+
+        <button
+          disabled={isPublishing || !formData.title || formData.photos.length === 0 || !selectedLocation}
           onClick={handlePublish}
           className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-orange-100 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
         >
           {isPublishing ? (
             <><Loader2 className="animate-spin" /> PUBLICATION...</>
+          ) : !selectedLocation ? (
+            '📍 SÉLECTIONNEZ UNE VILLE'
           ) : (
             'PUBLIER MAINTENANT'
           )}
