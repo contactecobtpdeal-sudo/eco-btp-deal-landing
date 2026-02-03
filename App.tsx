@@ -152,7 +152,7 @@ const App: React.FC = () => {
       {/* Bandeau d'urgence offre de lancement */}
       <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-center py-2 px-4 animate-pulse">
         <p className="text-[11px] font-black uppercase tracking-wide">
-          ⏳ OFFRE DE LANCEMENT : Plus que 4 jours pour profiter du 1er mois offert !
+          ⏳ Plus que 4 jours pour le 1er mois offert !
         </p>
       </div>
 
