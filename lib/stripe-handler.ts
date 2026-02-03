@@ -3,7 +3,7 @@
  *
  * Configuration des abonnements :
  * - Abonnement Club Eco-BTP : 29,90 € HT / mois
- * - Offre Spéciale : 1er mois à 0 € (période d'essai), puis 29,90 €
+ * - Offre Spéciale : 1er mois à 0 € (période d'essai configurée dans Stripe Dashboard)
  *
  * IMPORTANT : Remplacez les clés de test par vos clés de production avant le lancement
  */
@@ -13,26 +13,20 @@
 const STRIPE_PUBLIC_KEY = 'pk_test_51234567890abcdefghijklmnopqrstuvwxyz';
 
 // IDs des prix Stripe (à configurer dans votre Dashboard Stripe)
-// Ces IDs sont des exemples - créez vos propres prix dans Stripe Dashboard
+// IMPORTANT: Créez ces prix dans votre Dashboard Stripe et copiez les IDs ici
+// Pour la période d'essai, configurez-la directement sur le prix dans Stripe Dashboard
 export const STRIPE_PRICES = {
-  // Abonnement mensuel standard : 29,90 € HT / mois
-  MONTHLY_STANDARD: 'price_eco_btp_monthly_2990',
-
-  // Abonnement avec 1er mois offert (période d'essai de 30 jours)
-  MONTHLY_WITH_TRIAL: 'price_eco_btp_monthly_trial_2990',
+  // Abonnement mensuel avec période d'essai de 30 jours : 29,90 € HT / mois
+  // Configurez la période d'essai dans Stripe Dashboard > Products > Votre produit > Prix
+  MONTHLY_WITH_TRIAL: 'price_1234567890abcdef', // Remplacez par votre vrai price_id
 };
 
 // URLs de redirection après paiement
-const SUCCESS_URL = window.location.origin + '?payment=success';
-const CANCEL_URL = window.location.origin + '?payment=cancelled';
+const getSuccessUrl = () => `${window.location.origin}/?payment=success`;
+const getCancelUrl = () => `${window.location.origin}/?payment=cancelled`;
 
-// Interface pour les options de checkout
-interface CheckoutOptions {
-  priceId: string;
-  customerEmail?: string;
-  siret?: string;
-  trialDays?: number;
-}
+// Variable pour stocker l'instance Stripe
+let stripeInstance: any = null;
 
 /**
  * Charge le script Stripe.js dynamiquement
@@ -41,6 +35,12 @@ const loadStripeScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (window.Stripe) {
       resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src="https://js.stripe.com/v3/"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve());
       return;
     }
 
@@ -63,59 +63,39 @@ const getStripeInstance = async () => {
     throw new Error('Stripe.js non disponible');
   }
 
-  return window.Stripe(STRIPE_PUBLIC_KEY);
+  if (!stripeInstance) {
+    stripeInstance = window.Stripe(STRIPE_PUBLIC_KEY);
+  }
+
+  return stripeInstance;
 };
 
 /**
  * Ouvre la page de paiement Stripe Checkout
- * Avec période d'essai de 30 jours (1er mois offert)
+ * Format correct pour redirectToCheckout côté client
  */
-export const openStripeCheckout = async (options: CheckoutOptions): Promise<void> => {
+export const openStripeCheckout = async (priceId: string): Promise<void> => {
   try {
     const stripe = await getStripeInstance();
 
-    // Configuration de la session Checkout
-    // Note: En production, cette session devrait être créée côté serveur
-    // Pour le mode test, on utilise un Payment Link ou une redirection
-
-    const checkoutConfig: any = {
+    // Configuration de la session Checkout (format côté client)
+    // Note: La période d'essai doit être configurée dans Stripe Dashboard sur le prix
+    const result = await stripe.redirectToCheckout({
       lineItems: [
         {
-          price: options.priceId,
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: 'subscription',
-      successUrl: SUCCESS_URL,
-      cancelUrl: CANCEL_URL,
-    };
-
-    // Ajouter la période d'essai si spécifiée
-    if (options.trialDays && options.trialDays > 0) {
-      checkoutConfig.subscriptionData = {
-        trialPeriodDays: options.trialDays,
-      };
-    }
-
-    // Ajouter l'email client si disponible
-    if (options.customerEmail) {
-      checkoutConfig.customerEmail = options.customerEmail;
-    }
-
-    // Ajouter le SIRET comme métadonnée
-    if (options.siret) {
-      checkoutConfig.metadata = {
-        siret: options.siret,
-      };
-    }
-
-    // Redirection vers Stripe Checkout
-    const result = await stripe.redirectToCheckout(checkoutConfig);
+      successUrl: getSuccessUrl(),
+      cancelUrl: getCancelUrl(),
+    });
 
     if (result.error) {
       throw new Error(result.error.message);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur Stripe Checkout:', error);
     throw error;
   }
@@ -123,27 +103,10 @@ export const openStripeCheckout = async (options: CheckoutOptions): Promise<void
 
 /**
  * Ouvre le checkout pour l'abonnement Club Eco-BTP
- * Offre de lancement : 1er mois offert (30 jours d'essai)
+ * Offre de lancement : 1er mois offert (période d'essai configurée dans Stripe Dashboard)
  */
-export const openClubEcoBTPCheckout = async (customerEmail?: string, siret?: string): Promise<void> => {
-  return openStripeCheckout({
-    priceId: STRIPE_PRICES.MONTHLY_WITH_TRIAL,
-    customerEmail,
-    siret,
-    trialDays: 30, // 1er mois offert
-  });
-};
-
-/**
- * Ouvre le checkout pour l'abonnement standard (sans période d'essai)
- */
-export const openStandardCheckout = async (customerEmail?: string, siret?: string): Promise<void> => {
-  return openStripeCheckout({
-    priceId: STRIPE_PRICES.MONTHLY_STANDARD,
-    customerEmail,
-    siret,
-    trialDays: 0,
-  });
+export const openClubEcoBTPCheckout = async (): Promise<void> => {
+  return openStripeCheckout(STRIPE_PRICES.MONTHLY_WITH_TRIAL);
 };
 
 /**
@@ -168,36 +131,41 @@ export const checkPaymentStatus = (): 'success' | 'cancelled' | null => {
 };
 
 /**
- * Configuration Stripe pour le mode test
+ * GUIDE DE CONFIGURATION STRIPE
+ * ==============================
  *
- * ÉTAPES POUR CONFIGURER STRIPE :
+ * ÉTAPE 1 : Créer un compte Stripe
+ * --------------------------------
+ * Allez sur https://dashboard.stripe.com/register
  *
- * 1. Créez un compte Stripe : https://dashboard.stripe.com/register
+ * ÉTAPE 2 : Créer un Produit
+ * --------------------------
+ * 1. Dashboard > Products > + Add product
+ * 2. Nom : "Abonnement Club Eco-BTP Pro"
+ * 3. Description : "Accès illimité aux fonctionnalités Pro - 1er mois offert"
  *
- * 2. Dans le Dashboard Stripe, créez un Produit :
- *    - Nom : "Abonnement Club Eco-BTP"
- *    - Description : "Accès illimité aux fonctionnalités Pro"
+ * ÉTAPE 3 : Créer un Prix avec période d'essai
+ * ---------------------------------------------
+ * 1. Dans votre produit, cliquez sur "+ Add price"
+ * 2. Montant : 29,90 €
+ * 3. Récurrence : Mensuel
+ * 4. IMPORTANT : Cliquez sur "Add free trial" et mettez 30 jours
+ * 5. Sauvegardez et copiez l'ID du prix (commence par price_...)
  *
- * 3. Créez un Prix pour ce produit :
- *    - Montant : 29,90 € HT
- *    - Récurrence : Mensuel
- *    - Copiez l'ID du prix (price_xxx) et remplacez STRIPE_PRICES.MONTHLY_WITH_TRIAL
+ * ÉTAPE 4 : Configurer les clés
+ * -----------------------------
+ * 1. Dashboard > Developers > API Keys
+ * 2. Copiez "Publishable key" (pk_test_...)
+ * 3. Remplacez STRIPE_PUBLIC_KEY ci-dessus
+ * 4. Remplacez STRIPE_PRICES.MONTHLY_WITH_TRIAL avec votre price_id
  *
- * 4. Récupérez votre clé publique de test :
- *    - Dashboard > Developers > API Keys
- *    - Copiez "Publishable key" (pk_test_...)
- *    - Remplacez STRIPE_PUBLIC_KEY ci-dessus
- *
- * 5. Pour la période d'essai, configurez dans le produit Stripe :
- *    - Ou utilisez subscriptionData.trialPeriodDays dans le code
- *
- * CARTES DE TEST STRIPE :
- * - Succès : 4242 4242 4242 4242
- * - Refusée : 4000 0000 0000 0002
- * - Authentification requise : 4000 0025 0000 3155
- *
- * Date d'expiration : n'importe quelle date future
- * CVC : n'importe quel code à 3 chiffres
+ * CARTES DE TEST :
+ * ----------------
+ * Succès : 4242 4242 4242 4242
+ * Refusée : 4000 0000 0000 0002
+ * 3D Secure : 4000 0025 0000 3155
+ * Date : n'importe quelle date future (ex: 12/34)
+ * CVC : n'importe quel code à 3 chiffres (ex: 123)
  */
 
 // Déclaration pour TypeScript
@@ -209,7 +177,7 @@ declare global {
 
 export default {
   openClubEcoBTPCheckout,
-  openStandardCheckout,
+  openStripeCheckout,
   checkPaymentStatus,
   STRIPE_PRICES,
 };

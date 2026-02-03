@@ -17,8 +17,8 @@ const ProPaywall: React.FC<ProPaywallProps> = ({ onSubscribe }) => {
     setError(null);
 
     try {
-      // Ouvrir Stripe Checkout avec période d'essai de 30 jours
-      await openClubEcoBTPCheckout(email || undefined);
+      // Ouvrir Stripe Checkout (période d'essai configurée dans Stripe Dashboard)
+      await openClubEcoBTPCheckout();
       // Note: Si tout se passe bien, l'utilisateur est redirigé vers Stripe
       // Cette ligne ne sera atteinte que si la redirection échoue
     } catch (err: any) {
