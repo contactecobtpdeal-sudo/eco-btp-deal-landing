@@ -32,17 +32,29 @@ const ProPaywall: React.FC<ProPaywallProps> = ({ onSubscribe }) => {
 
         {/* Pricing Card */}
         <div className="bg-white rounded-[2.5rem] border-2 border-slate-900 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] p-8 text-left space-y-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 bg-slate-900 text-white px-4 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest">
-            OFFRE PRO
+          <div className="absolute top-0 right-0 bg-orange-500 text-white px-4 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest animate-pulse">
+            OFFRE DE LANCEMENT
           </div>
-          
+
+          {/* Bannière 1er mois offert */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-center py-3 px-4 rounded-2xl -mx-2 shadow-lg">
+            <p className="text-lg font-black uppercase tracking-wide">1ER MOIS OFFERT - SANS ENGAGEMENT</p>
+          </div>
+
           <div className="space-y-1">
             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Abonnement Entreprise</h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-black text-slate-900">9,99 €</span>
-              <span className="text-slate-500 font-bold">/ mois HT</span>
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <span className="text-4xl font-black text-green-600">0 €</span>
+                <p className="text-[10px] font-bold text-green-600 uppercase">1er mois</p>
+              </div>
+              <span className="text-2xl text-slate-300">→</span>
+              <div className="text-center">
+                <span className="text-4xl font-black text-slate-900">29,90 €</span>
+                <p className="text-[10px] font-bold text-slate-500 uppercase">HT / mois</p>
+              </div>
             </div>
-            <p className="text-xs font-bold text-orange-600 uppercase tracking-tighter">Sans engagement. 1er mois offert.</p>
+            <p className="text-xs font-bold text-slate-500 mt-2">Résiliez à tout moment pendant le mois gratuit.</p>
           </div>
 
           <div className="space-y-4 pt-4 border-t border-slate-100">
