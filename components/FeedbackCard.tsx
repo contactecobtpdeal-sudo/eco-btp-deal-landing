@@ -20,7 +20,7 @@ const FeedbackCard: React.FC<FeedbackCardProps> = ({ onOpenForm }) => {
         </div>
         
         <h3 className="text-xl font-black uppercase tracking-tighter italic leading-none">Votre avis nous aide !</h3>
-        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2 mb-6 italic">Phase de Test Privée • v2.5</p>
+        <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest mt-2 mb-6 italic">Eco-BTP Deal • v3.0</p>
         
         <p className="text-xs font-bold leading-relaxed mb-8 max-w-[240px]">
           Une idée d'amélioration ? Un bug identifié ? <br/> 

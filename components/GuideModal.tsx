@@ -14,7 +14,7 @@ const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
           <Info size={40} strokeWidth={2.5} />
         </div>
         
-        <h2 className="text-2xl font-black uppercase italic mb-8 tracking-tighter">Guide Testeur</h2>
+        <h2 className="text-2xl font-black uppercase italic mb-8 tracking-tighter">Guide Utilisateur</h2>
         
         <div className="space-y-6 text-left w-full mb-12">
           <div className="flex gap-5 items-center group">
