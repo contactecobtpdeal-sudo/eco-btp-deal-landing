@@ -32,10 +32,19 @@ const SupportChatbot: React.FC = () => {
   const [leadForm, setLeadForm] = useState<LeadInfo>({ name: "", email: "" });
   const [showLeadForm, setShowLeadForm] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMicToast, setShowMicToast] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const EMOJI_LIST = [
+    "😀", "😊", "😂", "🤣", "😍", "🥰", "😎", "🤔",
+    "👍", "👎", "👋", "🙏", "💪", "🔥", "✅", "❌",
+    "🏗️", "🧱", "🪵", "🔨", "⚙️", "🚛", "📦", "♻️",
+  ];
 
   // Load persisted data on mount
   useEffect(() => {
@@ -267,6 +276,30 @@ const SupportChatbot: React.FC = () => {
     });
   }
 
+  function handleFileClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      sendMessage(`📎 Fichier joint : ${file.name}`);
+    }
+    // Reset pour permettre de re-sélectionner le même fichier
+    e.target.value = "";
+  }
+
+  function handleEmojiSelect(emoji: string) {
+    setInput((prev) => prev + emoji);
+    setShowEmojiPicker(false);
+    inputRef.current?.focus();
+  }
+
+  function handleMicClick() {
+    setShowMicToast(true);
+    setTimeout(() => setShowMicToast(false), 2500);
+  }
+
   return (
     <div className="ecobtp-chatbot">
       {/* Floating button */}
@@ -448,6 +481,13 @@ const SupportChatbot: React.FC = () => {
 
               {/* Input */}
               <form className="ecobtp-chatbot__input-area" onSubmit={handleSubmit}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="ecobtp-chatbot__file-hidden"
+                  onChange={handleFileSelected}
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                />
                 <div className="ecobtp-chatbot__input-wrapper">
                   <textarea
                     ref={inputRef}
@@ -461,12 +501,12 @@ const SupportChatbot: React.FC = () => {
                   />
                   {/* Barre d'outils icônes */}
                   <div className="ecobtp-chatbot__toolbar">
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Pièces jointes">
+                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Pièces jointes" onClick={handleFileClick}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                       </svg>
                     </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Emojis">
+                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Emojis" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M8 14s1.5 2 4 2 4-2 4-2" />
@@ -480,7 +520,7 @@ const SupportChatbot: React.FC = () => {
                         <text x="12" y="15" textAnchor="middle" fill="currentColor" stroke="none" fontSize="8" fontWeight="bold">GIF</text>
                       </svg>
                     </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Message vocal">
+                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Message vocal" onClick={handleMicClick}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -489,7 +529,24 @@ const SupportChatbot: React.FC = () => {
                       </svg>
                     </button>
                   </div>
+
+                  {/* Emoji Picker */}
+                  {showEmojiPicker && (
+                    <div className="ecobtp-chatbot__emoji-picker">
+                      {EMOJI_LIST.map((emoji, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="ecobtp-chatbot__emoji-btn"
+                          onClick={() => handleEmojiSelect(emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <button
                   type="submit"
                   className="ecobtp-chatbot__send"
@@ -502,6 +559,13 @@ const SupportChatbot: React.FC = () => {
                   </svg>
                 </button>
               </form>
+
+              {/* Toast micro */}
+              {showMicToast && (
+                <div className="ecobtp-chatbot__toast">
+                  🎙️ Fonctionnalité bientôt disponible
+                </div>
+              )}
             </>
           )}
         </div>
