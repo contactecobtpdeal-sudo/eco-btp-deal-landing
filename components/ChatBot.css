@@ -439,6 +439,10 @@
   background: #fff;
 }
 
+.ecobtp-chatbot__input-area .ecobtp-chatbot__send {
+  align-self: center;
+}
+
 .ecobtp-chatbot__input {
   flex: 1;
   padding: 10px 14px;
@@ -464,6 +468,60 @@
 
 .ecobtp-chatbot__input:disabled {
   background: #f8fafc;
+}
+
+/* ===== Input Wrapper & Toolbar ===== */
+
+.ecobtp-chatbot__input-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  background: #fff;
+  transition: border-color 0.2s;
+  overflow: hidden;
+}
+
+.ecobtp-chatbot__input-wrapper:focus-within {
+  border-color: var(--ecobtp-primary);
+}
+
+.ecobtp-chatbot__input-wrapper .ecobtp-chatbot__input {
+  border: none;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 14px 4px;
+}
+
+.ecobtp-chatbot__input-wrapper .ecobtp-chatbot__input:focus {
+  border-color: transparent;
+}
+
+.ecobtp-chatbot__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 10px 6px;
+}
+
+.ecobtp-chatbot__toolbar-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+  padding: 0;
+}
+
+.ecobtp-chatbot__toolbar-btn:hover {
+  color: var(--ecobtp-primary);
+  background: rgba(234, 88, 12, 0.08);
 }
 
 .ecobtp-chatbot__send {
