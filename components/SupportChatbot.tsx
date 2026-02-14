@@ -33,6 +33,7 @@ const SupportChatbot: React.FC = () => {
   const [showLeadForm, setShowLeadForm] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [showMicToast, setShowMicToast] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,18 @@ const SupportChatbot: React.FC = () => {
     "😀", "😊", "😂", "🤣", "😍", "🥰", "😎", "🤔",
     "👍", "👎", "👋", "🙏", "💪", "🔥", "✅", "❌",
     "🏗️", "🧱", "🪵", "🔨", "⚙️", "🚛", "📦", "♻️",
+  ];
+
+  const GIF_LIST = [
+    { emoji: "🚛", label: "Livraison chantier", search: "camion livraison" },
+    { emoji: "👷", label: "Ouvrier au travail", search: "ouvrier btp" },
+    { emoji: "🔨", label: "Coup de marteau", search: "marteau construction" },
+    { emoji: "🏗️", label: "Grue en action", search: "grue chantier" },
+    { emoji: "🧱", label: "Pose de briques", search: "briques maçonnerie" },
+    { emoji: "♻️", label: "Recyclage matériaux", search: "recyclage green" },
+    { emoji: "💪", label: "Bon travail !", search: "bien joué bravo" },
+    { emoji: "🤝", label: "Deal conclu", search: "poignée de main" },
+    { emoji: "👍", label: "Super !", search: "pouce en l'air" },
   ];
 
   // Load persisted data on mount
@@ -295,6 +308,21 @@ const SupportChatbot: React.FC = () => {
     inputRef.current?.focus();
   }
 
+  function handleEmojiToggle() {
+    setShowEmojiPicker(!showEmojiPicker);
+    setShowGifPicker(false);
+  }
+
+  function handleGifSelect(gif: typeof GIF_LIST[number]) {
+    sendMessage(`🎬 ${gif.emoji} ${gif.label}`);
+    setShowGifPicker(false);
+  }
+
+  function handleGifToggle() {
+    setShowGifPicker(!showGifPicker);
+    setShowEmojiPicker(false);
+  }
+
   function handleMicClick() {
     setShowMicToast(true);
     setTimeout(() => setShowMicToast(false), 2500);
@@ -506,7 +534,7 @@ const SupportChatbot: React.FC = () => {
                         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                       </svg>
                     </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Emojis" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Emojis" onClick={handleEmojiToggle}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M8 14s1.5 2 4 2 4-2 4-2" />
@@ -514,7 +542,7 @@ const SupportChatbot: React.FC = () => {
                         <line x1="15" y1="9" x2="15.01" y2="9" />
                       </svg>
                     </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="GIF">
+                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="GIF" onClick={handleGifToggle}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="4" width="20" height="16" rx="2" />
                         <text x="12" y="15" textAnchor="middle" fill="currentColor" stroke="none" fontSize="8" fontWeight="bold">GIF</text>
@@ -543,6 +571,29 @@ const SupportChatbot: React.FC = () => {
                           {emoji}
                         </button>
                       ))}
+                    </div>
+                  )}
+
+                  {/* GIF Picker */}
+                  {showGifPicker && (
+                    <div className="ecobtp-chatbot__gif-picker">
+                      <div className="ecobtp-chatbot__gif-header">
+                        <span>GIFs BTP</span>
+                        <span className="ecobtp-chatbot__gif-badge">DEMO</span>
+                      </div>
+                      <div className="ecobtp-chatbot__gif-grid">
+                        {GIF_LIST.map((gif, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="ecobtp-chatbot__gif-item"
+                            onClick={() => handleGifSelect(gif)}
+                          >
+                            <span className="ecobtp-chatbot__gif-emoji">{gif.emoji}</span>
+                            <span className="ecobtp-chatbot__gif-label">{gif.label}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
