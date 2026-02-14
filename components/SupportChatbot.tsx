@@ -34,12 +34,14 @@ const SupportChatbot: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
-  const [showMicToast, setShowMicToast] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [micToast, setMicToast] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const EMOJI_LIST = [
     "😀", "😊", "😂", "🤣", "😍", "🥰", "😎", "🤔",
@@ -323,9 +325,68 @@ const SupportChatbot: React.FC = () => {
     setShowEmojiPicker(false);
   }
 
+  function showMicToast(msg: string) {
+    setMicToast(msg);
+    setTimeout(() => setMicToast(""), 3000);
+  }
+
   function handleMicClick() {
-    setShowMicToast(true);
-    setTimeout(() => setShowMicToast(false), 2500);
+    // Si déjà en écoute, on arrête
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+
+    // Vérifier le support du navigateur
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showMicToast("Votre navigateur ne supporte pas la reconnaissance vocale. Essayez Chrome ou Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = "fr-FR";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setShowEmojiPicker(false);
+      setShowGifPicker(false);
+    };
+
+    // Garder le texte présent avant le début de la dictée
+    const textBeforeDictation = input;
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      const base = textBeforeDictation.replace(/\s*$/, "");
+      setInput(base ? base + " " + transcript : transcript);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      inputRef.current?.focus();
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      if (event.error === "not-allowed") {
+        showMicToast("Accès au micro refusé. Autorisez le micro dans les paramètres du navigateur.");
+      } else if (event.error === "no-speech") {
+        showMicToast("Aucune voix détectée. Réessayez en parlant plus fort.");
+      } else {
+        showMicToast("Erreur micro. Veuillez réessayer.");
+      }
+    };
+
+    recognition.start();
   }
 
   return (
@@ -548,7 +609,12 @@ const SupportChatbot: React.FC = () => {
                         <text x="12" y="15" textAnchor="middle" fill="currentColor" stroke="none" fontSize="8" fontWeight="bold">GIF</text>
                       </svg>
                     </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Message vocal" onClick={handleMicClick}>
+                    <button
+                      type="button"
+                      className={`ecobtp-chatbot__toolbar-btn ${isListening ? "ecobtp-chatbot__toolbar-btn--recording" : ""}`}
+                      title={isListening ? "Arrêter l'écoute" : "Dictée vocale"}
+                      onClick={handleMicClick}
+                    >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -612,9 +678,17 @@ const SupportChatbot: React.FC = () => {
               </form>
 
               {/* Toast micro */}
-              {showMicToast && (
+              {micToast && (
                 <div className="ecobtp-chatbot__toast">
-                  🎙️ Fonctionnalité bientôt disponible
+                  {micToast}
+                </div>
+              )}
+
+              {/* Indicateur écoute vocale */}
+              {isListening && (
+                <div className="ecobtp-chatbot__listening-bar">
+                  <span className="ecobtp-chatbot__listening-dot" />
+                  <span>Écoute en cours... Parlez maintenant</span>
                 </div>
               )}
             </>
