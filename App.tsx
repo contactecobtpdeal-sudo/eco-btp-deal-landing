@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  LayoutGrid, Search, User as UserIcon, ShieldCheck, 
-  Plus, Map, Download, 
-  Bot, Shield, CheckCircle, Lock, MessageCircle, Leaf, 
-  ShieldAlert, Info, Star, Share2, Megaphone, Users, X,
-  Smartphone
+import {
+  LayoutGrid, Search, User as UserIcon, ShieldCheck,
+  Plus, Map, Download,
+  Bot, Shield, CheckCircle, Lock, Leaf,
+  ShieldAlert, Info, Star, Share2, Megaphone, Users, X
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import BrowseListings from './components/BrowseListings';
@@ -75,9 +74,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'browse' | 'post' | 'dashboard' | 'profile' | 'stats' | 'rse' | 'admin'>('dashboard');
   const [materials, setMaterials] = useState<Material[]>(INITIAL_MATERIALS);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
-  const [showSupportBubble, setShowSupportBubble] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [isVerified, setIsVerified] = useState(true);
@@ -93,14 +90,9 @@ const App: React.FC = () => {
     const notifTimer = setTimeout(() => {
       setNotification("Prêt pour le terrain ? Preuve photo activée ! 📸");
     }, 5000);
-    
-    const bubbleTimer = setTimeout(() => {
-      setShowSupportBubble(true);
-    }, 8000);
 
     return () => {
       clearTimeout(notifTimer);
-      clearTimeout(bubbleTimer);
     };
   }, []);
 
@@ -309,28 +301,8 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <div className="fixed bottom-24 right-6 z-[100] flex flex-col items-end gap-3 pointer-events-none max-w-md mx-auto">
-        {showSupportBubble && !isSupportOpen && (
-          <div className="bg-white p-5 rounded-[2rem] shadow-2xl border-2 border-slate-100 max-w-[240px] animate-in slide-in-from-right-8 duration-500 pointer-events-auto relative">
-            <button onClick={() => setShowSupportBubble(false)} className="absolute top-3 right-3 text-slate-300 hover:text-slate-900"><X size={14} /></button>
-            <div className="flex items-center gap-2 mb-2 font-black text-orange-600 uppercase text-[9px] tracking-widest leading-none">
-              <Smartphone size={12} strokeWidth={3} /> MOBILE FINAL
-            </div>
-            <p className="text-[11px] font-bold text-slate-600 leading-relaxed uppercase tracking-tight italic">
-              Videz vos chantiers en un clic.
-            </p>
-          </div>
-        )}
-        <button 
-          onClick={() => { setIsSupportOpen(true); setShowSupportBubble(false); }}
-          className="p-5 bg-orange-600 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all group pointer-events-auto border-4 border-white shadow-orange-100"
-        >
-          <MessageCircle size={32} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />
-        </button>
-      </div>
-
       {isChatOpen && <ChatWindow currentUser={currentUser} onClose={() => setIsChatOpen(false)} />}
-      <SupportChatbot isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
+      <SupportChatbot />
 
       {showProPaywall && (
         <div className="fixed inset-0 z-[300] bg-white overflow-y-auto">

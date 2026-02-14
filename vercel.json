@@ -2,5 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/chat", "destination": "/api/chat" },
+    { "source": "/api/lead", "destination": "/api/lead" }
+  ]
 }
