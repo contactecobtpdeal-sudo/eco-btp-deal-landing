@@ -32,35 +32,11 @@ const SupportChatbot: React.FC = () => {
   const [leadForm, setLeadForm] = useState<LeadInfo>({ name: "", email: "" });
   const [showLeadForm, setShowLeadForm] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [micToast, setMicToast] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-
-  const EMOJI_LIST = [
-    "😀", "😊", "😂", "🤣", "😍", "🥰", "😎", "🤔",
-    "👍", "👎", "👋", "🙏", "💪", "🔥", "✅", "❌",
-    "🏗️", "🧱", "🪵", "🔨", "⚙️", "🚛", "📦", "♻️",
-  ];
-
-  const GIF_LIST = [
-    { emoji: "🚛", label: "Livraison chantier", search: "camion livraison" },
-    { emoji: "👷", label: "Ouvrier au travail", search: "ouvrier btp" },
-    { emoji: "🔨", label: "Coup de marteau", search: "marteau construction" },
-    { emoji: "🏗️", label: "Grue en action", search: "grue chantier" },
-    { emoji: "🧱", label: "Pose de briques", search: "briques maçonnerie" },
-    { emoji: "♻️", label: "Recyclage matériaux", search: "recyclage green" },
-    { emoji: "💪", label: "Bon travail !", search: "bien joué bravo" },
-    { emoji: "🤝", label: "Deal conclu", search: "poignée de main" },
-    { emoji: "👍", label: "Super !", search: "pouce en l'air" },
-  ];
 
   // Load persisted data on mount
   useEffect(() => {
@@ -305,148 +281,6 @@ const SupportChatbot: React.FC = () => {
     e.target.value = "";
   }
 
-  function handleEmojiSelect(emoji: string) {
-    setInput((prev) => prev + emoji);
-    setShowEmojiPicker(false);
-    inputRef.current?.focus();
-  }
-
-  function handleEmojiToggle() {
-    setShowEmojiPicker(!showEmojiPicker);
-    setShowGifPicker(false);
-  }
-
-  function handleGifSelect(gif: typeof GIF_LIST[number]) {
-    sendMessage(`🎬 ${gif.emoji} ${gif.label}`);
-    setShowGifPicker(false);
-  }
-
-  function handleGifToggle() {
-    setShowGifPicker(!showGifPicker);
-    setShowEmojiPicker(false);
-  }
-
-  function showMicToastMsg(msg: string) {
-    setMicToast(msg);
-    setTimeout(() => setMicToast(""), 3500);
-  }
-
-  async function handleMicClick() {
-    // Si déjà en écoute, on arrête l'enregistrement
-    if (isListening && mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      return;
-    }
-
-    // Vérifier le support MediaRecorder
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showMicToastMsg("Votre navigateur ne supporte pas l'enregistrement audio.");
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Déterminer le meilleur format supporté
-      let mimeType = "audio/webm;codecs=opus";
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/webm";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/mp4";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "audio/ogg;codecs=opus";
-      }
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "";
-      }
-
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-
-      setIsListening(true);
-      setShowEmojiPicker(false);
-      setShowGifPicker(false);
-
-      const textBeforeDictation = input;
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        setIsListening(false);
-        mediaRecorderRef.current = null;
-
-        // Arrêter toutes les pistes audio
-        stream.getTracks().forEach((track) => track.stop());
-
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
-
-        if (audioBlob.size < 1000) {
-          showMicToastMsg("Enregistrement trop court. Maintenez et parlez plus longtemps.");
-          return;
-        }
-
-        // Afficher un indicateur de transcription
-        setMicToast("Transcription en cours...");
-
-        try {
-          // Convertir en base64 pour envoyer au serveur
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(audioBlob);
-          });
-
-          const response = await fetch("/api/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ audio: base64 }),
-          });
-
-          if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error || "Erreur serveur");
-          }
-
-          const data = await response.json();
-          const transcript = (data.text || "").trim();
-
-          if (transcript) {
-            const base = textBeforeDictation.replace(/\s*$/, "");
-            setInput(base ? base + " " + transcript : transcript);
-            setMicToast("");
-            inputRef.current?.focus();
-          } else {
-            showMicToastMsg("Aucune parole détectée. Réessayez en parlant plus fort.");
-          }
-        } catch {
-          showMicToastMsg("Erreur de transcription. Veuillez réessayer.");
-        }
-      };
-
-      recorder.start();
-    } catch (err: any) {
-      setIsListening(false);
-      if (err.name === "NotAllowedError") {
-        showMicToastMsg("Accès au micro refusé. Autorisez-le dans les paramètres du navigateur.");
-      } else {
-        showMicToastMsg("Impossible d'accéder au microphone.");
-      }
-    }
-  }
-
   return (
     <div className="ecobtp-chatbot">
       {/* Floating button */}
@@ -635,93 +469,21 @@ const SupportChatbot: React.FC = () => {
                   onChange={handleFileSelected}
                   accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                 />
-                <div className="ecobtp-chatbot__input-wrapper">
-                  <textarea
-                    ref={inputRef}
-                    className="ecobtp-chatbot__input"
-                    placeholder="Envoyer un message..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    disabled={isTyping}
-                  />
-                  {/* Barre d'outils icônes */}
-                  <div className="ecobtp-chatbot__toolbar">
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Pièces jointes" onClick={handleFileClick}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                      </svg>
-                    </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="Emojis" onClick={handleEmojiToggle}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                        <line x1="9" y1="9" x2="9.01" y2="9" />
-                        <line x1="15" y1="9" x2="15.01" y2="9" />
-                      </svg>
-                    </button>
-                    <button type="button" className="ecobtp-chatbot__toolbar-btn" title="GIF" onClick={handleGifToggle}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="4" width="20" height="16" rx="2" />
-                        <text x="12" y="15" textAnchor="middle" fill="currentColor" stroke="none" fontSize="8" fontWeight="bold">GIF</text>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className={`ecobtp-chatbot__toolbar-btn ${isListening ? "ecobtp-chatbot__toolbar-btn--recording" : ""}`}
-                      title={isListening ? "Arrêter l'écoute" : "Dictée vocale"}
-                      onClick={handleMicClick}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                        <line x1="12" y1="19" x2="12" y2="23" />
-                        <line x1="8" y1="23" x2="16" y2="23" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Emoji Picker */}
-                  {showEmojiPicker && (
-                    <div className="ecobtp-chatbot__emoji-picker">
-                      {EMOJI_LIST.map((emoji, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          className="ecobtp-chatbot__emoji-btn"
-                          onClick={() => handleEmojiSelect(emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* GIF Picker */}
-                  {showGifPicker && (
-                    <div className="ecobtp-chatbot__gif-picker">
-                      <div className="ecobtp-chatbot__gif-header">
-                        <span>GIFs BTP</span>
-                        <span className="ecobtp-chatbot__gif-badge">DEMO</span>
-                      </div>
-                      <div className="ecobtp-chatbot__gif-grid">
-                        {GIF_LIST.map((gif, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            className="ecobtp-chatbot__gif-item"
-                            onClick={() => handleGifSelect(gif)}
-                          >
-                            <span className="ecobtp-chatbot__gif-emoji">{gif.emoji}</span>
-                            <span className="ecobtp-chatbot__gif-label">{gif.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
+                <button type="button" className="ecobtp-chatbot__attach-btn" title="Joindre un fichier ou une photo" onClick={handleFileClick}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                  </svg>
+                </button>
+                <textarea
+                  ref={inputRef}
+                  className="ecobtp-chatbot__input"
+                  placeholder="Écrivez votre message..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  disabled={isTyping}
+                />
                 <button
                   type="submit"
                   className="ecobtp-chatbot__send"
@@ -734,21 +496,6 @@ const SupportChatbot: React.FC = () => {
                   </svg>
                 </button>
               </form>
-
-              {/* Toast micro */}
-              {micToast && (
-                <div className="ecobtp-chatbot__toast">
-                  {micToast}
-                </div>
-              )}
-
-              {/* Indicateur écoute vocale */}
-              {isListening && (
-                <div className="ecobtp-chatbot__listening-bar">
-                  <span className="ecobtp-chatbot__listening-dot" />
-                  <span>Enregistrement... Parlez puis recliquez le micro</span>
-                </div>
-              )}
             </>
           )}
         </div>
