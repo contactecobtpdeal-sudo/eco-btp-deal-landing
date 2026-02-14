@@ -41,7 +41,8 @@ const SupportChatbot: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const EMOJI_LIST = [
     "😀", "😊", "😂", "🤣", "😍", "🥰", "😎", "🤔",
@@ -325,68 +326,125 @@ const SupportChatbot: React.FC = () => {
     setShowEmojiPicker(false);
   }
 
-  function showMicToast(msg: string) {
+  function showMicToastMsg(msg: string) {
     setMicToast(msg);
-    setTimeout(() => setMicToast(""), 3000);
+    setTimeout(() => setMicToast(""), 3500);
   }
 
-  function handleMicClick() {
-    // Si déjà en écoute, on arrête
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+  async function handleMicClick() {
+    // Si déjà en écoute, on arrête l'enregistrement
+    if (isListening && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
       return;
     }
 
-    // Vérifier le support du navigateur
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      showMicToast("Votre navigateur ne supporte pas la reconnaissance vocale. Essayez Chrome ou Edge.");
+    // Vérifier le support MediaRecorder
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showMicToastMsg("Votre navigateur ne supporte pas l'enregistrement audio.");
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = "fr-FR";
-    recognition.interimResults = true;
-    recognition.continuous = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    recognition.onstart = () => {
+      // Déterminer le meilleur format supporté
+      let mimeType = "audio/webm;codecs=opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/webm";
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/mp4";
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "audio/ogg;codecs=opus";
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "";
+      }
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
       setIsListening(true);
       setShowEmojiPicker(false);
       setShowGifPicker(false);
-    };
 
-    // Garder le texte présent avant le début de la dictée
-    const textBeforeDictation = input;
+      const textBeforeDictation = input;
 
-    recognition.onresult = (event: any) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      const base = textBeforeDictation.replace(/\s*$/, "");
-      setInput(base ? base + " " + transcript : transcript);
-    };
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
 
-    recognition.onend = () => {
+      recorder.onstop = async () => {
+        setIsListening(false);
+        mediaRecorderRef.current = null;
+
+        // Arrêter toutes les pistes audio
+        stream.getTracks().forEach((track) => track.stop());
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+
+        if (audioBlob.size < 1000) {
+          showMicToastMsg("Enregistrement trop court. Maintenez et parlez plus longtemps.");
+          return;
+        }
+
+        // Afficher un indicateur de transcription
+        setMicToast("Transcription en cours...");
+
+        try {
+          // Convertir en base64 pour envoyer au serveur
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+          });
+
+          const response = await fetch("/api/transcribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: base64 }),
+          });
+
+          if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || "Erreur serveur");
+          }
+
+          const data = await response.json();
+          const transcript = (data.text || "").trim();
+
+          if (transcript) {
+            const base = textBeforeDictation.replace(/\s*$/, "");
+            setInput(base ? base + " " + transcript : transcript);
+            setMicToast("");
+            inputRef.current?.focus();
+          } else {
+            showMicToastMsg("Aucune parole détectée. Réessayez en parlant plus fort.");
+          }
+        } catch {
+          showMicToastMsg("Erreur de transcription. Veuillez réessayer.");
+        }
+      };
+
+      recorder.start();
+    } catch (err: any) {
       setIsListening(false);
-      recognitionRef.current = null;
-      inputRef.current?.focus();
-    };
-
-    recognition.onerror = (event: any) => {
-      setIsListening(false);
-      recognitionRef.current = null;
-      if (event.error === "not-allowed") {
-        showMicToast("Accès au micro refusé. Autorisez le micro dans les paramètres du navigateur.");
-      } else if (event.error === "no-speech") {
-        showMicToast("Aucune voix détectée. Réessayez en parlant plus fort.");
+      if (err.name === "NotAllowedError") {
+        showMicToastMsg("Accès au micro refusé. Autorisez-le dans les paramètres du navigateur.");
       } else {
-        showMicToast("Erreur micro. Veuillez réessayer.");
+        showMicToastMsg("Impossible d'accéder au microphone.");
       }
-    };
-
-    recognition.start();
+    }
   }
 
   return (
@@ -688,7 +746,7 @@ const SupportChatbot: React.FC = () => {
               {isListening && (
                 <div className="ecobtp-chatbot__listening-bar">
                   <span className="ecobtp-chatbot__listening-dot" />
-                  <span>Écoute en cours... Parlez maintenant</span>
+                  <span>Enregistrement... Parlez puis recliquez le micro</span>
                 </div>
               )}
             </>
