@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Eco-BTP Deal <onboarding@resend.dev>",
+          from: "Eco-BTP Deal <assistant@eco-btp-deal.fr>",
           to: [NOTIFY_EMAIL],
           subject: subject,
           text: body,
