@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Info, ShieldAlert, CreditCard, CheckCircle, QrCode, MapPin, Clock, ShieldCheck, ChevronRight, X, MessageSquare, Leaf, Weight, TrendingDown, Zap, Loader2, Navigation } from 'lucide-react';
+import { Search, Info, ShieldAlert, CheckCircle, QrCode, MapPin, Clock, ShieldCheck, ChevronRight, X, MessageSquare, Leaf, Weight, TrendingDown, Zap, Loader2, Navigation } from 'lucide-react';
 import { Material, Category, User, UserRole, ListingStatus } from '../types';
 import CarbonImpactWidget from './CarbonImpactWidget';
 import RouteOptimizer from './RouteOptimizer';
+import PaymentForm from './PaymentForm';
 
 interface BrowseListingsProps {
   materials: Material[];
@@ -315,9 +316,7 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onRese
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Frais de plateforme Eco-BTP</p>
                   <p className="text-3xl font-black">1,99 € <span className="text-xs opacity-50 font-normal">TTC</span></p>
                 </div>
-                <button onClick={nextStep} className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 transition-all flex items-center justify-center gap-2">
-                  <CreditCard size={18} /> Confirmer & Payer
-                </button>
+                <PaymentForm onSuccess={nextStep} />
               </div>
             )}
 
