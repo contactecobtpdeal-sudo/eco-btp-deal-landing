@@ -313,7 +313,7 @@ const BrowseListings: React.FC<BrowseListingsProps> = ({ materials, user, onRese
                 <CarbonImpactWidget weight={selectedMaterial.weightEstimatedKg} materialType={selectedMaterial.materialType} />
                 <div className="bg-slate-900 p-6 rounded-2xl text-white border-b-4 border-slate-950">
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Frais de plateforme Eco-BTP</p>
-                  <p className="text-3xl font-black">1,50 € <span className="text-xs opacity-50 font-normal">TTC</span></p>
+                  <p className="text-3xl font-black">1,99 € <span className="text-xs opacity-50 font-normal">TTC</span></p>
                 </div>
                 <button onClick={nextStep} className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 transition-all flex items-center justify-center gap-2">
                   <CreditCard size={18} /> Confirmer & Payer
